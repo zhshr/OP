@@ -1,0 +1,90 @@
+from game.base_manager import BaseManager
+
+
+class PlayerState:
+    def __init__(self, index: int):
+        self.player_index = index
+        self.name = chr(ord('A') + index)
+        self.attr = {}
+
+    def change_attr(self, attr: str, value: int, max: int):
+        factor = 1
+        attr = attr.lower()
+        prev = self.attr[attr]
+        if attr in ["atk", "def"]:
+            factor = 2
+        if value > 0:
+            if value * factor > self.attr['sp']:
+                return "属性点不足，需要{0} 现有{1}".format(value * factor, self.attr['sp'])
+            elif self.attr[attr] + value > max:
+                return "将超出属性上限，{0} -> {1} > {2}".format(prev, prev + value, max)
+        if value < 0:
+            if value + self.attr[attr] < 0:
+                return "属性不能为负，现{0}".format(prev)
+
+        self.attr[attr] += value
+        prev_sp = self.attr['sp']
+        self.attr['sp'] -= value * factor
+        return "加点成功，{0} {1} -> {2}，SP {3} -> {4}".format(attr, prev, self.attr[attr], prev_sp, self.attr['sp'])
+
+
+class PlayerManager(BaseManager):
+    def default_config(self):
+        default_values = {
+            'maxhp': {'default': 100, 'max': 150},
+            'maxap': {'default': 100, 'max': 150},
+            'atk': {'default': 50, 'max': 80},
+            'def': {'default': 50, 'max': 80},
+            'crt': {'default': 0, 'max': 50},
+            'erc': {'default': 0, 'max': 50},
+            'ele': {'default': 0, 'max': 50},
+            'sp': {'default': 50, 'max': 999},
+        }
+
+        player_default_attr = {k.lower(): v.get('default') for (k, v) in default_values.items()}
+        player_default_attr.update({'hp': default_values["maxhp"]['default'],
+                                    'ap': default_values["maxap"]['default']})
+
+        def get_state(i: int):
+            player_state = {
+                'player_index': i,
+                'name': chr(ord('A') + i),
+                'attr': player_default_attr.copy()
+            }
+            return player_state
+
+        player_count = 7
+        players = [get_state(i) for i in range(player_count)]
+        return {
+            'attributes': default_values,
+            'players': players
+        }
+
+    def config_loaded(self):
+        for player in self.config['players']:
+            state = PlayerState(player['player_index'])
+            state.attr = player['attr']
+            state.name = player['name']
+            self.player_state.append(state)
+
+    def save_config(self):
+        self.config['players'] = self.player_state
+        super().write_config()
+
+    def __init__(self):
+        self.player_state: list[PlayerState] = []
+        super().__init__()
+
+    def change_attr(self, player_index: int, attr: str, value: int):
+        if attr.lower() not in self.config['attributes']:
+            return "属性不存在"
+        result = self.player_state[player_index].change_attr(attr, value,
+                                                             self.config['attributes'][attr.lower()]['max'])
+        self.save_config()
+        return result
+
+    def get_index(self, name: str):
+        for state in self.player_state:
+            if state.name == name:
+                return state.player_index
+        return -1
