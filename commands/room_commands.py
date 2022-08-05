@@ -1,6 +1,8 @@
 import random
 
+from commands import CardMessageHelper
 from commands.authenticator import Authenticated, AllowedUsers
+from commands.base_commands import BaseCommands
 from game import channel_manager
 from game.game_manager import GameManager
 from game.global_state import GlobalState
@@ -9,18 +11,9 @@ from khl import Message, Bot, ChannelTypes, MessageTypes
 from khl.command import Command
 
 
-class RoomCommands:
-    def __init__(self, bot: Bot, game_manager: GameManager, state: GlobalState):
-        random.seed()
-        self.bot = bot
-        self.game_manager = game_manager
-        self.state = state
-
-    @classmethod
-    def init_and_register(cls, bot, game_manager, state):
-        inst = cls(bot, game_manager, state)
-        inst._register()
-        return inst
+class RoomCommands(BaseCommands):
+    def __init__(self, bot: Bot, game_manager: GameManager, state: GlobalState, card_message_helper: CardMessageHelper):
+        super().__init__(bot, game_manager, state, card_message_helper)
 
     def _register(self):
         self.bot.command.add(Command.command(name='setchat', )(self.create_private_room))

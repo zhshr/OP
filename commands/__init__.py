@@ -2,15 +2,18 @@ from pprint import pprint
 
 import ipdb
 
+from commands.card_message_helper import CardMessageHelper
 from commands.game_commands import GameCommands
 from commands.player_commands import PlayerCommands
 from commands.room_commands import RoomCommands
 from database import Database
 from game.game_manager import GameManager
 from game.global_state import GlobalState
-from khl import Bot, Message, ChannelTypes, PublicMessage, Guild, Event, EventTypes
+from khl import Bot, Message, ChannelTypes, PublicMessage, Guild, Event
 from khl.card import CardMessage, Card, Types, Module, Element
 from khl.command import Command
+
+
 #
 # 8636039613288526: 文字频道
 # 4409068061183200: 语音频道
@@ -32,6 +35,7 @@ from khl.command import Command
 # 1240807523669127: 历史对话组
 # 3872743605733543: 观众讨论组
 
+
 class Commands:
     def __init__(self, bot: Bot):
         self.bot = bot
@@ -42,9 +46,11 @@ class Commands:
         await self.game_manager.fetch_roles()
 
     def register(self):
-        GameCommands.init_and_register(self.bot, self.game_manager, self.state)
-        RoomCommands.init_and_register(self.bot, self.game_manager, self.state)
-        PlayerCommands.init_and_register(self.bot, self.game_manager, self.state)
+        cmh = CardMessageHelper(self.bot)
+        args = [self.bot, self.game_manager, self.state, cmh]
+        GameCommands.init_and_register(*args)
+        RoomCommands.init_and_register(*args)
+        PlayerCommands.init_and_register(*args)
         self.bot.command.add(Command.command(name='cc', )(self.create_channel))
         self.bot.command.add(Command.command(name='debug', )(self.debug))
         self.bot.command.add(Command.command(name='initialize', )(self.initialize))
@@ -52,7 +58,6 @@ class Commands:
         self.bot.command.add(Command.command(name='getchannels')(self.get_channels))
         self.bot.command.add(Command.command(name='getcategories')(self.get_categories))
         self.bot.command.add(Command.command(name='deletechannel')(self.do_delete_channels))
-        self.bot.add_event_handler(EventTypes.MESSAGE_BTN_CLICK, self.button_click)
 
     async def create_channel(self, msg: Message, name: str):
         await msg.reply(name)

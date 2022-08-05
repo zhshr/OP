@@ -1,8 +1,8 @@
-from game.base_manager import BaseManager
+from base.config_class import ConfigClass
 from game.global_state import GlobalState
 
 
-class ManagerWithState(BaseManager):
+class ManagerWithState(ConfigClass):
 
     def __init__(self, global_state: GlobalState):
         super().__init__()

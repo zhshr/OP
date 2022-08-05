@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import json
 import logging
 from typing import Dict, List, Callable, Coroutine, Union, IO
 
@@ -154,6 +155,12 @@ class Client(Requestable, AsyncRunnable):
 
     async def delete_message(self, msg: Union[Message, str]):
         return await self.gate.exec_req(api.Message.delete(msg_id=msg if isinstance(msg, str) else msg.id))
+
+    async def update_message(self, msg: Union[Message, str], content: Union[str, List]):
+        if isinstance(content, List):
+            content = json.dumps(content)
+        return await self.gate.exec_req(
+            api.Message.update(msg_id=msg if isinstance(msg, str) else msg.id, content=content))
 
     async def list_guild(self) -> List[Guild]:
         """list guilds which the client joined"""

@@ -1,12 +1,30 @@
-from game.base_manager import BaseManager
+from dataclasses import dataclass
+from typing import Union
+
+from dataclasses_json import dataclass_json
+from base.config_class import ConfigClass
+from database import item_library
 
 
+@dataclass_json
+@dataclass
+class ItemEntry:
+    count: int
+
+
+@dataclass_json
+@dataclass
 class PlayerState:
-    def __init__(self, index: int):
-        self.player_index = index
-        self.name = chr(ord('A') + index)
-        self.attr = {}
-        self.items = {}
+    player_index: int
+    name: str
+    attr: dict
+    items: dict[str, ItemEntry]
+
+    # def __init__(self, index: int):
+    #     self.player_index = index
+    #     self.name = chr(ord('A') + index)
+    #     self.attr = {}
+    #     self.items: dict[int, ItemEntry] = {}
 
     def change_attr(self, attr: str, value: int, max: int):
         factor = 1
@@ -65,7 +83,7 @@ class PlayerState:
             return "SP: {0} -> {1}".format(prev, new)
 
 
-class PlayerManager(BaseManager):
+class PlayerManager(ConfigClass):
     def default_config(self):
         default_values = {
             'maxhp': {'default': 100, 'max': 150},
@@ -86,7 +104,8 @@ class PlayerManager(BaseManager):
             player_state = {
                 'player_index': i,
                 'name': chr(ord('A') + i),
-                'attr': player_default_attr.copy()
+                'attr': player_default_attr.copy(),
+                'items': {}
             }
             return player_state
 
@@ -98,11 +117,13 @@ class PlayerManager(BaseManager):
         }
 
     def config_loaded(self):
-        for player in self.config['players']:
-            state = PlayerState(player['player_index'])
-            state.attr = player['attr']
-            state.name = player['name']
-            self.player_state.append(state)
+        # for player in self.config['players']:
+        #     state = PlayerState(player['player_index'])
+        #     state.attr = player['attr']
+        #     state.name = player['name']
+        #     self.player_state.append(state)
+        for v in self.config['players']:
+            self.player_state.append(PlayerState.from_dict(v))
 
     def save_config(self):
         self.config['players'] = self.player_state
@@ -134,3 +155,17 @@ class PlayerManager(BaseManager):
             if state.name == name:
                 return state.player_index
         return -1
+
+    def add_item_to_player(self, player_index: int, item_id: int, count: int = 1):
+        try:
+            state = self.player_state[player_index]
+            count = int(count)
+            item_id = str(item_id)
+            if item_id in state.items:
+                state.items.get(item_id).count += count
+                return state.items.get(item_id).count
+            else:
+                state.items.update({item_id: ItemEntry(count)})
+                return count
+        finally:
+            self.save_config()

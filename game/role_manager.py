@@ -1,8 +1,7 @@
 import logging
-import string
 from enum import IntEnum
 
-from game.base_manager import BaseManager
+from base.config_class import ConfigClass
 from khl import Role
 
 
@@ -12,7 +11,7 @@ class RoleTypes(IntEnum):
     PLAYER = 2,
 
 
-class RoleManager(BaseManager):
+class RoleManager(ConfigClass):
 
     def default_config(self):
         return {

@@ -227,6 +227,11 @@ class PublicTextChannel(PublicChannel):
         return await self.gate.exec_req(api.Message.create(**kwargs))
 
 
+class MinimalPublicTextChannel(PublicTextChannel):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
 class PublicVoiceChannel(PublicChannel):
     """
     Voice chat channel in guild

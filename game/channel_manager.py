@@ -1,7 +1,7 @@
 from enum import IntEnum
 from typing import Any
 
-from game.base_manager import BaseManager
+from base.config_class import ConfigClass
 from khl import PublicChannel
 
 
@@ -19,7 +19,7 @@ class ChannelTypes(IntEnum):
     CONTROL_CATEGORY = 103,
 
 
-class ChannelManager(BaseManager):
+class ChannelManager(ConfigClass):
     def default_config(self):
         return {
             'metadata': {}
@@ -72,6 +72,13 @@ class ChannelManager(BaseManager):
         for metadata in self.metadata.values():
             if 'player_private_channel' in metadata and metadata['player_private_channel'] == player_index:
                 return metadata['id']
+
+    def which_player_single_channel_is_this(self, channel_id: str) -> int:
+        for metadata in self.metadata.values():
+            if metadata['id'] == channel_id:
+                if 'player_private_channel' in metadata:
+                    return metadata['player_private_channel']
+        return -1
 
     def get_all_channels(self, types: list[ChannelTypes]):
         result: list[str] = []
