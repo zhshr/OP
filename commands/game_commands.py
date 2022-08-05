@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import math
 import random
 
 from commands.authenticator import AllowedUsers, Authenticated
@@ -38,7 +39,7 @@ class GameCommands(BaseCommands):
             result = [random.randint(1, int(comp[1])) for i in range(int(comp[0]))]
         return result
 
-    @Authenticated(allowed_user=[AllowedUsers.KP])
+    @Authenticated(allowed_user=[AllowedUsers.KP, AllowedUsers.PLAYER])
     async def roll(self, msg: Message, *params: str):
         segments = []
         total = 0
@@ -51,19 +52,20 @@ class GameCommands(BaseCommands):
 
     @Authenticated(allowed_user=[AllowedUsers.PLAYER, AllowedUsers.KP])
     async def show_turn(self, msg: Message):
-        await msg.reply('目前为第{0}回合'.format(self.game_manager.turn))
+        time = ['早上', '中午', '下午', '晚上']
+        turn = self.game_manager.turn
+        await msg.reply('目前为第{0}回合，第{1}天{2}'
+                        .format(turn, math.ceil(turn / 4), time[(turn-1) % 4]))
 
     @Authenticated(allowed_user=[AllowedUsers.KP])
     async def set_turn(self, msg: Message, turn: int):
-        self.game_manager.turn = turn
-        self.game_manager.save_config()
-        await msg.reply("回合已设为{0}".format(turn))
+        new_turn = await self.game_manager.time_lapse(int(turn) - self.game_manager.turn)
+        await msg.reply("回合已设为{0}".format(new_turn))
 
     @Authenticated(allowed_user=[AllowedUsers.KP])
     async def pass_turn(self, msg: Message):
-        self.game_manager.turn += 1
-        self.game_manager.save_config()
-        await msg.reply("回合已设为{0}".format(self.game_manager.turn))
+        new_turn = await self.game_manager.time_lapse(1)
+        await msg.reply("回合已设为{0}".format(new_turn))
 
     @Authenticated(allowed_user=[AllowedUsers.KP], allowed_channel=[ChannelTypes.BOT_CONTROL])
     async def shout(self, msg: Message, content: str):

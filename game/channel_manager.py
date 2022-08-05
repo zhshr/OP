@@ -68,7 +68,7 @@ class ChannelManager(BaseManager):
             return True
         return False
 
-    def get_player_private_channel(self, player_index: int):
+    def get_player_private_channel_id(self, player_index: int) -> str:
         for metadata in self.metadata.values():
             if 'player_private_channel' in metadata and metadata['player_private_channel'] == player_index:
                 return metadata['id']
@@ -87,3 +87,8 @@ class ChannelManager(BaseManager):
         if metadata and metadata['type']:
             return ChannelTypes(metadata['type'])
         return ChannelTypes.UNKNOWN
+
+    async def fetch_channel_map(self, guild) -> dict[str, PublicChannel]:
+        channels = await guild.fetch_channel_list()
+        channels = {channel.id: channel for channel in channels}
+        return channels

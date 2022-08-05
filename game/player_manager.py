@@ -6,6 +6,7 @@ class PlayerState:
         self.player_index = index
         self.name = chr(ord('A') + index)
         self.attr = {}
+        self.items = {}
 
     def change_attr(self, attr: str, value: int, max: int):
         factor = 1
@@ -26,6 +27,33 @@ class PlayerState:
         prev_sp = self.attr['sp']
         self.attr['sp'] -= value * factor
         return "加点成功，{0} {1} -> {2}，SP {3} -> {4}".format(attr, prev, self.attr[attr], prev_sp, self.attr['sp'])
+
+    def change_state(self, state: str, value: int):
+        if state.lower() == 'hp':
+            prev = self.attr['hp']
+            new = prev + value
+            if new < 0:
+                return "操作失败"
+            if new > self.attr['maxhp']:
+                new = self.attr['maxhp']
+            self.attr['hp'] = new
+            return "SP: {0} -> {1}".format(prev, new)
+        elif state.lower() == 'ap':
+            prev = self.attr['ap']
+            new = prev + value
+            if new < 0:
+                return "操作失败"
+            if new > self.attr['maxap']:
+                new = self.attr['maxap']
+            self.attr['ap'] = new
+            return "AP: {0} -> {1}".format(prev, new)
+        elif state.lower() == 'sp':
+            prev = self.attr['sp']
+            new = prev + value
+            if new < 0:
+                return "操作失败"
+            self.attr['sp'] = new
+            return "SP: {0} -> {1}".format(prev, new)
 
 
 class PlayerManager(BaseManager):

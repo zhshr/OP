@@ -58,8 +58,10 @@ class Authenticated:
             auth_user = await self.get_auth(user, base)
             logging.info(auth_user)
             if not await self.is_user_allowed(auth_user, msg, base):
+                await msg.reply("调用失败，用户组权限不足")
                 return
             if not await self.is_channel_allowed(auth_user, msg, base):
+                await msg.reply("调用失败，频道b")
                 return
             argspec = inspect.getfullargspec(func)
             for name, arg in argspec.annotations.items():
@@ -105,7 +107,7 @@ class Authenticated:
 
         reply = "Allowed roles: {1}\n\nUser roles:\n{0}".format(
             '\n'.join(temp),
-            ' '.join(au.name for au in self.allowed_user)
+            ', '.join(au.name for au in self.allowed_user)
         )
         await msg.reply(reply)
         return result
@@ -121,7 +123,7 @@ class Authenticated:
                 pass
             else:
                 continue
-            temp[-1] += "✓"
+            temp[-1] += " ✓"
             result = True
         await msg.reply("Allowed channels:\n{0}".format('\n'.join(temp)))
         return result

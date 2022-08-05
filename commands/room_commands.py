@@ -26,6 +26,7 @@ class RoomCommands:
         self.bot.command.add(Command.command(name='setchat', )(self.create_private_room))
         self.bot.command.add(Command.command(name='endchat')(self.close_private_room))
 
+    @Authenticated(allowed_user=[AllowedUsers.KP], allowed_channel=[channel_manager.ChannelTypes.BOT_CONTROL])
     async def create_private_room(self, msg: Message, *params: str):
         channel_name = '玩家对话区#{0}'.format(random.randint(10000, 99999))
         player_indice = [self.state.players.get_index(name) for name in params]
@@ -34,12 +35,11 @@ class RoomCommands:
         self.state.channels.add(channel, {'start': self.game_manager.turn, 'players': params,
                                           'type': channel_manager.ChannelTypes.PLAYER_SHARED})
         await ChannelUtils.set_to_players_only(channel, self.state.roles, [param for param in params])
-        channels = await self.state.guild.fetch_channel_list()
-        channels = {channel.id: channel for channel in channels}
+        channels = await self.state.channels.fetch_channel_map(self.state.guild)
         for param in params:
             for player in self.state.players.player_state:
                 if player.name == param:
-                    player_channel_id = self.state.channels.get_player_private_channel(player.player_index)
+                    player_channel_id = self.state.channels.get_player_private_channel_id(player.player_index)
                     await self.bot.send(channels[player_channel_id], "new channel: (chn){0}(chn)".format(channel.id),
                                         type=MessageTypes.KMD)
 

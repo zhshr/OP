@@ -1,3 +1,6 @@
+import asyncio
+import logging
+
 from database import Database
 from game import channel_manager
 from game.global_state import GlobalState
@@ -117,3 +120,21 @@ class GameManager(ManagerWithState):
 
     def init(self):
         self.bot.command.add(Command.command(name='initialize', )(self.initialize_game))
+
+    async def time_lapse(self, turns: int):
+        prev = self.turn
+        after = self.turn + turns
+
+        auto_recover_times = after // 12 - prev // 12
+        logging.info('time lapse {0} -> {1}, triggered {2} AP recovery'.format(prev, after, auto_recover_times))
+        self.turn = after
+        channels = await self.state.channels.fetch_channel_map(self.state.guild)
+        futures = []
+        for player_state in self.state.players.player_state:
+            result = player_state.change_state('ap', 40 * auto_recover_times)
+            futures.append(
+                channels[self.state.channels.get_player_private_channel_id(player_state.player_index)].send(result))
+
+        await asyncio.gather(*futures)
+        self.save_config()
+        return self.turn
