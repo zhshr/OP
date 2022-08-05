@@ -28,6 +28,7 @@ class GameCommands(BaseCommands):
         self.bot.command.add(Command.command(name='shout')(self.shout))
         self.bot.command.add(Command.command(name='setT')(self.set_turn))
         self.bot.command.add(Command.command(name='passT')(self.pass_turn))
+        self.bot.command.add(Command.command(name='set')(self.set_attr))
 
     def do_roll(self, exp: str) -> list[int]:
         comp = exp.split('d')
@@ -91,3 +92,14 @@ class GameCommands(BaseCommands):
 
         promises = [send(c) for c in channels_to_send]
         await asyncio.gather(*promises)
+
+    @Authenticated(allowed_user=[AllowedUsers.KP])
+    async def set_attr(self, msg: Message, playerid:str,attr: str, value: int):
+        value = int(value)
+
+
+        attr = attr.lower()
+        for player in self.state.players.player_state:
+            if player.name == playerid:
+                
+                await msg.reply(self.state.players.change_attr2(player.player_index, attr, value))
