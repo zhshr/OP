@@ -15,9 +15,10 @@ class AllowedUsers(IntEnum):
     KP = 2,
     PLAYER = 3,
     PLAYER_IN_SINGLE_CHANNEL = 4,
-    PLAYER_IN_SHARED_CHANNEL = 5
+    PLAYER_IN_SHARED_CHANNEL = 5,
     # Administrators are ALWAYS allowed EVERYWHERE
     # ADMINISTRATOR = 999,
+    DEV = 1000
 
 
 class Auth:
@@ -88,6 +89,7 @@ class Authenticated:
                 "Type={0}, Index={1} ".format(auth.role_type.name, auth.role_index))
             matched = False
             matched |= auth.role_type == RoleTypes.KP and AllowedUsers.KP in self.allowed_user
+            matched |= auth.role_type == RoleTypes.DEV and AllowedUsers.DEV in self.allowed_user
             if AllowedUsers.EVERYONE in self.allowed_user:
                 matched = True
             elif auth.role_type == RoleTypes.PLAYER:

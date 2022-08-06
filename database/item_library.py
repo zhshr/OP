@@ -9,9 +9,21 @@ from base.config_class import ConfigClass
 
 class ItemType(IntEnum):
     ITEM = 1,
-    EQUIPMENT = 2,
+    EQUIPMENT3 = 2,
+    EQUIPMENT4 = 3
 
     OTHER = 999
+
+    @property
+    def display_name(self):
+        match self:
+            case ItemType.ITEM:
+                return "道具"
+            case ItemType.EQUIPMENT3:
+                return "三星装备"
+            case ItemType.EQUIPMENT4:
+                return "四星装备"
+
 
 
 @dataclass_json
@@ -40,7 +52,7 @@ class ItemLibrary(ConfigClass):
         super().__init__(config_name="items")
 
     def add_item(self, item: Item) -> int:
-        new_id = max(self.item_map.keys(), default=-1) + 1
+        new_id = int(max(self.item_map.keys(), default=-1)) + 1
         self.item_map.update({new_id: item})
         self.save_config()
         return new_id

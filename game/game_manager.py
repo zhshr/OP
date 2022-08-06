@@ -131,7 +131,7 @@ class GameManager(ManagerWithState):
         channels = await self.state.channels.fetch_channel_map(self.state.guild)
         futures = []
         for player_state in self.state.players.player_state:
-            result = player_state.change_state('ap', 40 * auto_recover_times)
+            result = player_state.add_state('ap', 40 * auto_recover_times)
             futures.append(
                 channels[self.state.channels.get_player_private_channel_id(player_state.player_index)].send(result))
 

@@ -26,7 +26,6 @@ class GameCommands(BaseCommands):
         self.bot.command.add(Command.command(name='shout')(self.shout))
         self.bot.command.add(Command.command(name='setT')(self.set_turn))
         self.bot.command.add(Command.command(name='passT')(self.pass_turn))
-        self.bot.command.add(Command.command(name='set')(self.set_attr))
         self.bot.command.add(Command.command(name='additemtoconfig')(self.add_item_to_config))
         self.bot.command.add(Command.command(name='additem')(self.add_item_to_player))
         self.bot.command.add(Command.command(name='listallitems')(self.list_all_items))
@@ -84,21 +83,11 @@ class GameCommands(BaseCommands):
         promises = [send(c) for c in channels_to_send]
         await asyncio.gather(*promises)
 
-    @Authenticated(allowed_user=[AllowedUsers.KP])
-    async def set_attr(self, msg: Message, playerid:str,attr: str, value: int):
-        value = int(value)
-
-
-        attr = attr.lower()
-        for player in self.state.players.player_state:
-            if player.name == playerid:
-                
-                await msg.reply(self.state.players.change_attr2(player.player_index, attr, value))
-
     @Authenticated(allowed_user=[AllowedUsers.KP], allowed_channel=[ChannelTypes.BOT_CONTROL])
-    async def add_item_to_config(self, msg: Message, item_name: str, item_desc: str):
+    async def add_item_to_config(self, msg: Message, item_name: str, item_desc: str, item_type: str = "item"):
         items = item_library.instance()
-        new_item = items.add_item(item_library.Item(name=item_name, desc=item_desc, type=item_library.ItemType.ITEM))
+        item_type = item_library.ItemType[item_type.upper()]
+        new_item = items.add_item(item_library.Item(name=item_name, desc=item_desc, type=item_type))
         await msg.reply("物品{0}添加完成(ID={1})".format(item_name, new_item))
 
     @Authenticated(allowed_user=[AllowedUsers.KP], allowed_channel=[ChannelTypes.PLAYER_SINGLE])
@@ -119,6 +108,6 @@ class GameCommands(BaseCommands):
     async def list_all_items(self, msg: Message):
         items = []
         for item_id, item in item_library.instance().item_map.items():
-            items.append('ID={0}: 类别：{2} 名称：{1} 描述：{3}'.format(item_id, item.name, item.type.name, item.desc))
+            items.append(
+                'ID={0}: 类别：{2} 名称：{1} 描述：{3}'.format(item_id, item.name, item.type.display_name, item.desc))
         await msg.reply('\n'.join(items))
-

@@ -2,13 +2,12 @@ import logging
 import random
 from pprint import pprint
 
-import ipdb
-
+import utils
 from commands import CardMessageHelper
 from commands.authenticator import Authenticated, AllowedUsers, AuthUser
 from commands.base_commands import BaseCommands
-from commands.card_message_helper import CardMessageButtonData, CardMessageMetadata, CardMessageHelperCallbacks
-import utils
+from commands.card_message_helper import CardMessageButtonData, CardMessageHelperCallbacks
+from game import channel_manager
 from khl import Message, Bot, Event
 from khl.card import CardMessage, Card, Types, Module, Element
 from khl.command import Command
@@ -21,7 +20,11 @@ class PlayerCommands(BaseCommands):
     def _register(self):
         random.seed()
         self.bot.command.add(Command.command(name='state', )(self.get_player_state))
-        self.bot.command.add(Command.command(name='add')(self.add_attr))
+        self.bot.command.add(Command.command(name='grow')(self.grow_attr))
+        self.bot.command.add(Command.command(name='add')(self.add))
+        self.bot.command.add(Command.command(name='addx')(self.addx))
+        self.bot.command.add(Command.command(name='set')(self.set))
+        self.bot.command.add(Command.command(name='setx')(self.setx))
         self.bot.command.add(Command.command(name='wish')(self.wish))
         self.card_message_helper.register_action('wish_confirm', self.do_wish)
 
@@ -32,7 +35,7 @@ class PlayerCommands(BaseCommands):
                        self.state.players.player_state[auth.player_index()].attr.items()]))
 
     @Authenticated(allowed_user=[AllowedUsers.PLAYER_IN_SINGLE_CHANNEL])
-    async def add_attr(self, msg: Message, attr: str, value: int, *, auth: AuthUser):
+    async def grow_attr(self, msg: Message, attr: str, value: int, *, auth: AuthUser):
         value = int(value)
         if value <= 0:
             await msg.reply("加点须大于0")
@@ -41,7 +44,7 @@ class PlayerCommands(BaseCommands):
         if attr in ['hp', 'ap', 'sp']:
             await msg.reply("此属性只能由KP操作")
             return
-        await msg.reply(self.state.players.change_attr(auth.player_index(), attr, value))
+        await msg.reply(self.state.players.add_attr(auth.player_index(), attr, value))
 
     @Authenticated(allowed_user=[AllowedUsers.PLAYER_IN_SINGLE_CHANNEL, AllowedUsers.KP])
     async def wish(self, msg: Message, *, auth: AuthUser):
@@ -123,4 +126,34 @@ class PlayerCommands(BaseCommands):
                 theme=Types.Theme.SUCCESS
             ))
         await bot.client.update_message(e.body['msg_id'], cm)
-        pass
+
+    def _add(self, player_id: int, attr: str, diff: int):
+        if attr.lower() in ['hp', 'ap', 'sp']:
+            return self.state.players.player_state[player_id].add_state(attr.lower(), diff)
+        return self.state.players.add_attr(player_id, attr, diff)
+
+    @Authenticated(allowed_user=[AllowedUsers.KP], allowed_channel=[channel_manager.ChannelTypes.BOT_CONTROL])
+    async def addx(self, msg: Message, player_name: str, attr: str, diff: int):
+        result = self._add(self.state.players.get_index(player_name), attr, int(diff))
+        await msg.reply(result)
+
+    @Authenticated(allowed_user=[AllowedUsers.KP], allowed_channel=[channel_manager.ChannelTypes.PLAYER_SINGLE])
+    async def add(self, msg: Message, attr: str, diff: int):
+        result = self._add(
+            self.state.channels.which_player_single_channel_is_this(msg.ctx.channel.id), attr, int(diff))
+        await msg.reply(result)
+
+    @Authenticated(allowed_user=[AllowedUsers.KP], allowed_channel=[channel_manager.ChannelTypes.BOT_CONTROL])
+    async def setx(self, msg: Message, player_name: str, attr: str, value: int):
+        player_id = self.state.players.get_index(player_name)
+        current = self.state.players.get_attr(player_id, attr)
+        result = self._add(self.state.players.get_index(player_name), attr, int(value)-current)
+        await msg.reply(result)
+
+    @Authenticated(allowed_user=[AllowedUsers.KP], allowed_channel=[channel_manager.ChannelTypes.PLAYER_SINGLE])
+    async def set(self, msg: Message, attr: str, value: int):
+        player_id = self.state.channels.which_player_single_channel_is_this(msg.ctx.channel.id)
+        current = self.state.players.get_attr(player_id, attr)
+        result = self._add(
+            self.state.channels.which_player_single_channel_is_this(msg.ctx.channel.id), attr, int(value)-current)
+        await msg.reply(result)

@@ -26,7 +26,7 @@ class PlayerState:
     #     self.attr = {}
     #     self.items: dict[int, ItemEntry] = {}
 
-    def change_attr(self, attr: str, value: int, max: int):
+    def add_attr(self, attr: str, value: int, max: int):
         factor = 1
         attr = attr.lower()
         prev = self.attr[attr]
@@ -46,16 +46,15 @@ class PlayerState:
         self.attr['sp'] -= value * factor
         return "加点成功，{0} {1} -> {2}，SP {3} -> {4}".format(attr, prev, self.attr[attr], prev_sp, self.attr['sp'])
 
+    def change_attr2(self, attr: str, value: int, max: int):
 
-    def change_attr2(self, attr: str, value: int,max:int):
-        
         prev = self.attr[attr]
-        
+
         self.attr[attr] = value
 
-        return "更改成功，{0}{1} ->{2} ".format(attr,prev,self.attr[attr])
+        return "更改成功，{0}{1} ->{2} ".format(attr, prev, self.attr[attr])
 
-    def change_state(self, state: str, value: int):
+    def add_state(self, state: str, value: int):
         if state.lower() == 'hp':
             prev = self.attr['hp']
             new = prev + value
@@ -64,7 +63,7 @@ class PlayerState:
             if new > self.attr['maxhp']:
                 new = self.attr['maxhp']
             self.attr['hp'] = new
-            return "SP: {0} -> {1}".format(prev, new)
+            return "HP: {0} -> {1}".format(prev, new)
         elif state.lower() == 'ap':
             prev = self.attr['ap']
             new = prev + value
@@ -133,11 +132,11 @@ class PlayerManager(ConfigClass):
         self.player_state: list[PlayerState] = []
         super().__init__()
 
-    def change_attr(self, player_index: int, attr: str, value: int):
+    def add_attr(self, player_index: int, attr: str, value: int):
         if attr.lower() not in self.config['attributes']:
             return "属性不存在"
-        result = self.player_state[player_index].change_attr(attr, value,
-                                                             self.config['attributes'][attr.lower()]['max'])
+        result = self.player_state[player_index].add_attr(attr, value,
+                                                          self.config['attributes'][attr.lower()]['max'])
         self.save_config()
         return result
 
@@ -145,11 +144,10 @@ class PlayerManager(ConfigClass):
         if attr.lower() not in self.config['attributes']:
             return "属性不存在"
         result = self.player_state[player_index].change_attr2(attr, value,
-                                                             self.config['attributes'][attr.lower()]['max'])
+                                                              self.config['attributes'][attr.lower()]['max'])
         self.save_config()
         return result
 
- 
     def get_index(self, name: str):
         for state in self.player_state:
             if state.name == name:
@@ -169,3 +167,6 @@ class PlayerManager(ConfigClass):
                 return count
         finally:
             self.save_config()
+
+    def get_attr(self, player_id: int, attr: str):
+        return self.player_state[player_id].attr[attr.lower()]

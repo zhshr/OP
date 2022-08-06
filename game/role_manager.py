@@ -9,6 +9,8 @@ class RoleTypes(IntEnum):
     OTHER = 0,
     KP = 1,
     PLAYER = 2,
+    DEV = 3,
+    ADMIN = 4,
 
 
 class RoleManager(ConfigClass):
@@ -62,6 +64,10 @@ class RoleManager(ConfigClass):
             return RoleTypes.KP
         elif role_id in self.config['role_ids']['Player']:
             return RoleTypes.PLAYER
+        elif role_id in self.config['role_ids']['Dev']:
+            return RoleTypes.DEV
+        elif role_id in self.config['role_ids']['Admin']:
+            return RoleTypes.ADMIN
         else:
             return RoleTypes.OTHER
 
