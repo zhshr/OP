@@ -11,7 +11,7 @@ class ItemType(IntEnum):
     ITEM = 1,
     EQUIPMENT3 = 2,
     EQUIPMENT4 = 3
-
+    ARTIFACT = 4,
     OTHER = 999
 
     @property
@@ -23,8 +23,8 @@ class ItemType(IntEnum):
                 return "三星装备"
             case ItemType.EQUIPMENT4:
                 return "四星装备"
-
-
+            case ItemType.ARTIFACT:
+                return "圣遗物"
 
 @dataclass_json
 @dataclass
@@ -75,6 +75,9 @@ class ItemLibrary(ConfigClass):
             return item_id, self.item_map.get(item_id)
         else:
             return -1, None
+
+    def get_all_by_type(self, item_type: ItemType):
+        return {k: v for k, v in self.item_map.items() if v.type == item_type}
 
 
 _item_library = None

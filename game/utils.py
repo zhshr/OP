@@ -29,7 +29,7 @@ class ChannelUtils:
         await channel.create_role_permission(player_role)
         await channel.update_role_permission(
             player_role,
-            allow=ChannelUtils.VISIBLE_EDITABLE)
+            allow=Permissions.VIEW_CHANNEL + Permissions.POST_MESSAGE)
 
     @staticmethod
     async def set_to_players_only(channel: PublicChannel, roles: RoleManager, player_names: list[str]):
@@ -40,4 +40,4 @@ class ChannelUtils:
             await channel.create_role_permission(player_role)
             await channel.update_role_permission(
                 player_role,
-                allow=ChannelUtils.VISIBLE_EDITABLE)
+                allow=Permissions.VIEW_CHANNEL + Permissions.POST_MESSAGE)

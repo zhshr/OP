@@ -4,6 +4,7 @@ import ipdb
 
 from commands.card_message_helper import CardMessageHelper
 from commands.game_commands import GameCommands
+from commands.item_commands import ItemCommands
 from commands.player_commands import PlayerCommands
 from commands.room_commands import RoomCommands
 from database import Database
@@ -51,9 +52,10 @@ class Commands:
         GameCommands.init_and_register(*args)
         RoomCommands.init_and_register(*args)
         PlayerCommands.init_and_register(*args)
-        self.bot.command.add(Command.command(name='cc', )(self.create_channel))
+        ItemCommands.init_and_register(*args)
+        # self.bot.command.add(Command.command(name='cc', )(self.create_channel))
         self.bot.command.add(Command.command(name='debug', )(self.debug))
-        self.bot.command.add(Command.command(name='initialize', )(self.initialize))
+        self.bot.command.add(Command.command(name='initialize', )(self.do_initialize))
         self.bot.command.add(Command.command(name='getroles')(self.get_role))
         self.bot.command.add(Command.command(name='getchannels')(self.get_channels))
         self.bot.command.add(Command.command(name='getcategories')(self.get_categories))
@@ -77,7 +79,6 @@ class Commands:
             guild: Guild = await self.bot.fetch_guild(msg.ctx.guild.id)
             pprint(guild.channels)
             pprint(await guild.fetch_channel_category_list())
-            ipdb.set_trace()
             await msg.reply(reply)
 
     async def get_role(self, msg: Message):
@@ -116,8 +117,8 @@ class Commands:
         )
         await self.bot.send(msg.channel, cm)
 
-    async def do_initialize(self, guild_id: str):
-        await self.game_manager.initialize(guild_id)
+    async def do_initialize(self):
+        await self.game_manager.initialize(self.state.guild.id)
 
     async def do_delete_channels(self, *args):
         await self.game_manager.delete_channels(*args)

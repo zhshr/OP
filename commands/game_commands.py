@@ -32,14 +32,28 @@ class GameCommands(BaseCommands):
 
     @Authenticated(allowed_user=[AllowedUsers.KP, AllowedUsers.PLAYER])
     async def roll(self, msg: Message, *params: str):
+        if len(params) == 1 and params[0].isalpha():
+            await self.attr_roll(msg, params[0])
+            return
         segments = []
         total = 0
+        if len(params) == 0:
+            params = ['1d100']
         for param in params:
             result = utils.roll(param)
             segments.append("({0})".format('+'.join(map(str, result))))
             total += sum(result)
         reply = "{0} = {1}".format(" + ".join(segments), total)
         await msg.reply(reply)
+
+    async def attr_roll(self, msg: Message, attr: str):
+        player_id = self.state.channels.which_player_single_channel_is_this(msg.ctx.channel.id)
+        attr_value = self.state.players.get_attr(player_id, attr)
+        dice = sum(utils.roll('1d100'))
+        success_level = utils.success_level(dice, attr_value)
+
+        await msg.reply('{0}={1} 掷骰1d100={2}, 成功等级{3}:{4}'.format(
+            attr, attr_value, dice, success_level.value, success_level.display_name()))
 
     @Authenticated(allowed_user=[AllowedUsers.PLAYER, AllowedUsers.KP])
     async def show_turn(self, msg: Message):

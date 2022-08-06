@@ -4,12 +4,7 @@ from typing import Union
 from dataclasses_json import dataclass_json
 from base.config_class import ConfigClass
 from database import item_library
-
-
-@dataclass_json
-@dataclass
-class ItemEntry:
-    count: int
+from game.common import ItemEntry
 
 
 @dataclass_json
@@ -26,12 +21,14 @@ class PlayerState:
     #     self.attr = {}
     #     self.items: dict[int, ItemEntry] = {}
 
-    def add_attr(self, attr: str, value: int, max: int):
+    def add_attr(self, attr: str, value: int, max: int, change_sp: bool):
         factor = 1
         attr = attr.lower()
         prev = self.attr[attr]
         if attr in ["atk", "def"]:
             factor = 2
+        if not change_sp:
+            factor = 0
         if value > 0:
             if value * factor > self.attr['sp']:
                 return "属性点不足，需要{0} 现有{1}".format(value * factor, self.attr['sp'])
@@ -44,7 +41,11 @@ class PlayerState:
         self.attr[attr] += value
         prev_sp = self.attr['sp']
         self.attr['sp'] -= value * factor
-        return "加点成功，{0} {1} -> {2}，SP {3} -> {4}".format(attr, prev, self.attr[attr], prev_sp, self.attr['sp'])
+        attr_text = "{0} {1} -> {2}".format(attr, prev, self.attr[attr])
+        if attr == 'maxhp':
+            self.attr['hp'] += value
+            attr_text += " {0} {1} -> {2}".format('hp', self.attr['hp'] - value, self.attr['hp'])
+        return "加点成功，{0}，SP {1} -> {2}".format(attr_text, prev_sp, self.attr['sp'])
 
     def change_attr2(self, attr: str, value: int, max: int):
 
@@ -80,6 +81,11 @@ class PlayerState:
                 return "操作失败"
             self.attr['sp'] = new
             return "SP: {0} -> {1}".format(prev, new)
+
+    def get_item_count(self, item_id: str):
+        if item_id in self.items:
+            return self.items[item_id].count
+        return 0
 
 
 class PlayerManager(ConfigClass):
@@ -132,11 +138,37 @@ class PlayerManager(ConfigClass):
         self.player_state: list[PlayerState] = []
         super().__init__()
 
-    def add_attr(self, player_index: int, attr: str, value: int):
+    def add_attr(self, player_index: int, attr: str, diff: int):
         if attr.lower() not in self.config['attributes']:
             return "属性不存在"
-        result = self.player_state[player_index].add_attr(attr, value,
-                                                          self.config['attributes'][attr.lower()]['max'])
+        result = self.player_state[player_index].add_attr(attr, diff,
+                                                          self.config['attributes'][attr.lower()]['max'],
+                                                          change_sp=True)
+        self.save_config()
+        return result
+
+    def set_attr(self, player_index: int, attr: str, value: int):
+        if attr.lower() not in self.config['attributes']:
+            return "属性不存在"
+        prev = self.player_state[player_index].attr[attr.lower()]
+        result = self.player_state[player_index].add_attr(attr, value - prev,
+                                                          self.config['attributes'][attr.lower()]['max'],
+                                                          change_sp=False)
+        self.save_config()
+        return result
+
+    def add_state(self, player_index: int, state: str, diff: int):
+        if state.lower() not in ['hp', 'ap', 'sp']:
+            return "属性不存在"
+        result = self.player_state[player_index].add_state(state, diff, )
+        self.save_config()
+        return result
+
+    def set_state(self, player_index: int, state: str, value: int):
+        if state.lower() not in ['hp', 'ap', 'sp']:
+            return "属性不存在"
+        prev = self.player_state[player_index].attr[state.lower()]
+        result = self.player_state[player_index].add_state(state, value - prev, )
         self.save_config()
         return result
 

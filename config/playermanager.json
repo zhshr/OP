@@ -55,20 +55,23 @@
             "player_index": 1,
             "name": "B",
             "attr": {
-                "maxhp": 100,
+                "maxhp": 120,
                 "maxap": 100,
                 "atk": 50,
                 "def": 50,
                 "crt": 0,
                 "erc": 0,
                 "ele": 0,
-                "sp": 50,
+                "sp": 30,
                 "hp": 100,
                 "ap": 100
             },
             "items": {
                 "0": {
-                    "count": 10
+                    "count": 690
+                },
+                "1": {
+                    "count": 2
                 }
             }
         },
@@ -76,18 +79,28 @@
             "player_index": 2,
             "name": "C",
             "attr": {
-                "maxhp": 100,
+                "maxhp": 110,
                 "maxap": 100,
-                "atk": 50,
+                "atk": 30,
                 "def": 50,
                 "crt": 0,
                 "erc": 5,
                 "ele": 0,
-                "sp": 45,
-                "hp": 100,
-                "ap": 100
+                "sp": 100,
+                "hp": 110,
+                "ap": 55
             },
-            "items": {}
+            "items": {
+                "0": {
+                    "count": 1600
+                },
+                "1": {
+                    "count": 2
+                },
+                "2": {
+                    "count": 1
+                }
+            }
         },
         {
             "player_index": 3,

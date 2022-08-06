@@ -62,7 +62,7 @@ class Authenticated:
                 await msg.reply("调用失败，用户组权限不足")
                 return
             if not await self.is_channel_allowed(auth_user, msg, base):
-                await msg.reply("调用失败，频道b")
+                await msg.reply("调用失败，频道错误")
                 return
             argspec = inspect.getfullargspec(func)
             for name, arg in argspec.annotations.items():
@@ -86,7 +86,7 @@ class Authenticated:
         result = False
         for auth in auth_user.auth:
             temp.append(
-                "Type={0}, Index={1} ".format(auth.role_type.name, auth.role_index))
+                "(Type={0}, Index={1})".format(auth.role_type.name, auth.role_index))
             matched = False
             matched |= auth.role_type == RoleTypes.KP and AllowedUsers.KP in self.allowed_user
             matched |= auth.role_type == RoleTypes.DEV and AllowedUsers.DEV in self.allowed_user
@@ -108,10 +108,11 @@ class Authenticated:
                 temp[-1] += "✓"
 
         reply = "Allowed roles: {1}\n\nUser roles:\n{0}".format(
-            '\n'.join(temp),
+            ' '.join(temp),
             ', '.join(au.name for au in self.allowed_user)
         )
-        await msg.reply(reply)
+        # await msg.reply(reply)
+        logging.info(reply)
         return result
 
     async def is_channel_allowed(self, user: AuthUser, msg: PublicMessage, base: BaseCommands):
@@ -127,5 +128,7 @@ class Authenticated:
                 continue
             temp[-1] += " ✓"
             result = True
-        await msg.reply("Allowed channels:\n{0}".format('\n'.join(temp)))
+        reply = "Allowed channels:\n{0}".format('\n'.join(temp))
+        # await msg.reply()
+        logging.info(reply)
         return result

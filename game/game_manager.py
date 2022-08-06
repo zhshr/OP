@@ -7,6 +7,7 @@ from game.global_state import GlobalState
 from game.manager_with_config import ManagerWithState
 from game.utils import ChannelUtils
 from khl import Bot, Message, ChannelTypes
+from khl.card import CardMessage, Card, Module, Element, Types
 from khl.command import Command
 
 
@@ -125,16 +126,27 @@ class GameManager(ManagerWithState):
         prev = self.turn
         after = self.turn + turns
 
-        auto_recover_times = after // 12 - prev // 12
-        logging.info('time lapse {0} -> {1}, triggered {2} AP recovery'.format(prev, after, auto_recover_times))
-        self.turn = after
-        channels = await self.state.channels.fetch_channel_map(self.state.guild)
-        futures = []
-        for player_state in self.state.players.player_state:
-            result = player_state.add_state('ap', 40 * auto_recover_times)
-            futures.append(
-                channels[self.state.channels.get_player_private_channel_id(player_state.player_index)].send(result))
-
-        await asyncio.gather(*futures)
-        self.save_config()
+        auto_recover_times = (after-1) // 12 - (prev-1) // 12
+        if auto_recover_times > 0:
+            logging.info('time lapse {0} -> {1}, triggered {2} AP recovery'.format(prev, after, auto_recover_times))
+            self.turn = after
+            channels = await self.state.channels.fetch_channel_map(self.state.guild)
+            futures = []
+            for player_state in self.state.players.player_state:
+                result = self.state.players.add_state(player_state.player_index, 'ap', 40 * auto_recover_times)
+                cm = CardMessage(
+                    Card(
+                        Module.Header("自动回复"),
+                        Module.Divider(),
+                        Module.Section(
+                            text=Element.Text(content=result)
+                        ),
+                        theme=Types.Theme.INFO,
+                    )
+                )
+                futures.append(
+                    channels[self.state.channels.get_player_private_channel_id(player_state.player_index)].send(cm))
+            self.state.players.save_config()
+            self.save_config()
+            await asyncio.gather(*futures)
         return self.turn
