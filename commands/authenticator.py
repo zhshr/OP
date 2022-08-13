@@ -1,10 +1,8 @@
-import functools
 import inspect
 import logging
 from enum import IntEnum
 
 from commands.base_commands import BaseCommands
-from game import channel_manager
 from game.channel_manager import ChannelTypes
 from game.role_manager import RoleTypes
 from khl import Message, PublicMessage, GuildUser
@@ -57,7 +55,7 @@ class Authenticated:
                 return
             user = await msg.ctx.guild.fetch_user(msg.author.id)
             auth_user = await self.get_auth(user, base)
-            logging.info(auth_user)
+            # logging.info(auth_user)
             if not await self.is_user_allowed(auth_user, msg, base):
                 await msg.reply("调用失败，用户组权限不足")
                 return
@@ -69,11 +67,11 @@ class Authenticated:
                 if arg == AuthUser:
                     kwargs.update({name: auth_user})
             await func(base, msg, *args, **kwargs)
-
+            print('\n')
         return wrapper
 
     async def get_auth(self, user: GuildUser, base: BaseCommands):
-        logging.info(user)
+        # logging.info(user)
         result = AuthUser([])
         for role_id in user.roles:
             role_type = base.state.roles.get_role_type(role_id)
@@ -107,7 +105,7 @@ class Authenticated:
                 result = True
                 temp[-1] += "✓"
 
-        reply = "Allowed roles: {1}\n\nUser roles:\n{0}".format(
+        reply = "Allowed roles: {1}\nUser roles: {0}".format(
             ' '.join(temp),
             ', '.join(au.name for au in self.allowed_user)
         )

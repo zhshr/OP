@@ -41,3 +41,12 @@ class ChannelUtils:
             await channel.update_role_permission(
                 player_role,
                 allow=Permissions.VIEW_CHANNEL + Permissions.POST_MESSAGE)
+
+    @staticmethod
+    async def add_ob_visibility(channel: PublicChannel, roles: RoleManager):
+        ob_role = roles.get_ob_role()[0]
+        await channel.create_role_permission(ob_role)
+        await channel.update_role_permission(
+            ob_role,
+            allow=Permissions.VIEW_CHANNEL,
+            deny=Permissions.POST_MESSAGE + Permissions.MANAGE_MESSAGE)

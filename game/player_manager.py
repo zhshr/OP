@@ -81,6 +81,13 @@ class PlayerState:
                 return "操作失败"
             self.attr['sp'] = new
             return "SP: {0} -> {1}".format(prev, new)
+        elif state.lower() == 'cha':
+            prev = self.attr['cha']
+            new = prev + value
+            if new < 0:
+                return "操作失败"
+            self.attr['sp'] = new
+            return "SP: {0} -> {1}".format(prev, new)
 
     def get_item_count(self, item_id: str):
         if item_id in self.items:
@@ -99,6 +106,7 @@ class PlayerManager(ConfigClass):
             'erc': {'default': 0, 'max': 50},
             'ele': {'default': 0, 'max': 50},
             'sp': {'default': 50, 'max': 999},
+            'cha': {'default': 0, 'max': 100}
         }
 
         player_default_attr = {k.lower(): v.get('default') for (k, v) in default_values.items()}
@@ -128,7 +136,10 @@ class PlayerManager(ConfigClass):
         #     state.name = player['name']
         #     self.player_state.append(state)
         for v in self.config['players']:
-            self.player_state.append(PlayerState.from_dict(v))
+            state = PlayerState.from_dict(v)
+            if 'cha' not in state.attr:
+                state.attr['cha'] = 0
+            self.player_state.append(state)
 
     def save_config(self):
         self.config['players'] = self.player_state
@@ -137,6 +148,8 @@ class PlayerManager(ConfigClass):
     def __init__(self):
         self.player_state: list[PlayerState] = []
         super().__init__()
+
+    STATES_NAME_LIST = ['hp', 'ap', 'sp', 'cha']
 
     def add_attr(self, player_index: int, attr: str, diff: int):
         if attr.lower() not in self.config['attributes']:
@@ -158,14 +171,14 @@ class PlayerManager(ConfigClass):
         return result
 
     def add_state(self, player_index: int, state: str, diff: int):
-        if state.lower() not in ['hp', 'ap', 'sp']:
+        if state.lower() not in self.STATES_NAME_LIST:
             return "属性不存在"
         result = self.player_state[player_index].add_state(state, diff, )
         self.save_config()
         return result
 
     def set_state(self, player_index: int, state: str, value: int):
-        if state.lower() not in ['hp', 'ap', 'sp']:
+        if state.lower() not in self.STATES_NAME_LIST:
             return "属性不存在"
         prev = self.player_state[player_index].attr[state.lower()]
         result = self.player_state[player_index].add_state(state, value - prev, )
@@ -182,7 +195,7 @@ class PlayerManager(ConfigClass):
 
     def get_index(self, name: str):
         for state in self.player_state:
-            if state.name == name:
+            if state.name.lower() == name.lower():
                 return state.player_index
         return -1
 

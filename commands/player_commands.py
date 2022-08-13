@@ -47,11 +47,25 @@ class PlayerCommands(BaseCommands):
         self.bot.command.add(Command.command(name='items')(self.get_items))
         self.bot.command.add(Command.command(name='move')(self.move))
 
-    @Authenticated(allowed_user=[AllowedUsers.PLAYER_IN_SINGLE_CHANNEL])
+    @Authenticated(allowed_user=[AllowedUsers.PLAYER_IN_SINGLE_CHANNEL, AllowedUsers.KP])
     async def get_player_state(self, msg: Message, *, auth: AuthUser):
+        player_id = self.state.channels.which_player_single_channel_is_this(msg.ctx.channel.id)
+        display_names = {
+            "maxhp": "最大HP",
+            "maxap": "最大体力",
+            "atk": "攻击",
+            "def": "防御",
+            "crt": "暴击率",
+            "erc": "元素充能",
+            "ele": "元素精通",
+            "sp": "属性点",
+            "hp": "HP",
+            "ap": "体力",
+            "cha": "元素能量",
+        }
         await msg.reply(
-            "\n".join(["{0}: {1}".format(k, v) for (k, v) in
-                       self.state.players.player_state[auth.player_index()].attr.items()]))
+            "\n".join(["{0}({1}): {2}".format(display_names.get(k, '?'), k, v) for (k, v) in
+                       self.state.players.player_state[player_id].attr.items()]))
 
     @Authenticated(allowed_user=[AllowedUsers.PLAYER_IN_SINGLE_CHANNEL])
     async def grow_attr(self, msg: Message, attr: str, value: int, *, auth: AuthUser):
@@ -152,7 +166,7 @@ class PlayerCommands(BaseCommands):
                     text=Element.Text(content="你获得了{0}".format(item_gained))
                 ),
                 Module.Section(
-                    text=Element.Text(content="剩余{0}原石".format(primo_count-160))
+                    text=Element.Text(content="剩余{0}原石".format(primo_count - 160))
                 ),
                 theme=Types.Theme.SUCCESS
             ))
@@ -160,7 +174,7 @@ class PlayerCommands(BaseCommands):
         await bot.client.update_message(e.body['msg_id'], cm)
 
     def _add(self, player_id: int, attr: str, diff: int):
-        if attr.lower() in ['hp', 'ap', 'sp']:
+        if attr.lower() in self.state.players.STATES_NAME_LIST:
             return self.state.players.add_state(player_id, attr.lower(), diff)
         return self.state.players.add_attr(player_id, attr, diff)
 
@@ -176,7 +190,7 @@ class PlayerCommands(BaseCommands):
         await msg.reply(result)
 
     def _set(self, player_id: int, attr: str, value: int):
-        if attr.lower() in ['hp', 'ap', 'sp']:
+        if attr.lower() in self.state.players.STATES_NAME_LIST:
             return self.state.players.set_state(player_id, attr.lower(), value)
         return self.state.players.set_attr(player_id, attr, value)
 
@@ -199,11 +213,13 @@ class PlayerCommands(BaseCommands):
                    allowed_channel=[channel_manager.ChannelTypes.PLAYER_SINGLE])
     async def get_items(self, msg: Message):
         player_id = self.state.channels.which_player_single_channel_is_this(msg.ctx.channel.id)
-        lines = ["{1} \\* {0} [{2}] ".format(
-            item_library.instance().get_item(item_id)[1].name,
-            item.count,
-            item_library.instance().get_item(item_id)[1].desc) for item_id, item in
-            self.state.players.player_state[player_id].items.items()]
+        lines = ["物品列表"]
+        for item_id, item_entry in self.state.players.player_state[player_id].items.items():
+            _, item = item_library.instance().get_item(item_id)
+            if item is None:
+                lines.append("{1} \\* {0} [{2}] ".format("未知物品，疑bug", item_entry.count, "未知描述"))
+            else:
+                lines.append("{1} \\* {0} [{2}] ".format(item.name, item_entry.count, item.desc))
         await msg.reply('\n'.join(lines))
 
     @Authenticated(allowed_user=[AllowedUsers.PLAYER_IN_SINGLE_CHANNEL, AllowedUsers.KP])
@@ -214,27 +230,27 @@ class PlayerCommands(BaseCommands):
     def build_adv_grow_cm(self, ):
 
         cm = CardMessage(
-                Card(
-                    Module.Header("抽卡确认"),
-                    Module.Divider(),
-                    Module.Section(
-                        text=Element.Text(content="现有{0}原石，抽取一次需160原石，是否继续?".format(0))
+            Card(
+                Module.Header("抽卡确认"),
+                Module.Divider(),
+                Module.Section(
+                    text=Element.Text(content="现有{0}原石，抽取一次需160原石，是否继续?".format(0))
+                ),
+                Module.Section(text=Element.Text(content="警告：不要多次点击，以防脚本出错！")),
+                Module.Divider(),
+                Module.ActionGroup(
+                    Element.Button(
+                        text=Element.Text(content="是"),
+                        theme=Types.Theme.PRIMARY,
                     ),
-                    Module.Section(text=Element.Text(content="警告：不要多次点击，以防脚本出错！")),
-                    Module.Divider(),
-                    Module.ActionGroup(
-                        Element.Button(
-                            text=Element.Text(content="是"),
-                            theme=Types.Theme.PRIMARY,
-                            ),
-                        Element.Button(
-                            text=Element.Text(content="否"),
-                            theme=Types.Theme.SECONDARY,
-                            ),
+                    Element.Button(
+                        text=Element.Text(content="否"),
+                        theme=Types.Theme.SECONDARY,
                     ),
-                    theme=Types.Theme.INFO,
-                )
+                ),
+                theme=Types.Theme.INFO,
             )
+        )
 
     async def do_advgrow(self, data: CardMessageButtonData, bot: Bot, e: Event, callbacks: CardMessageHelperCallbacks):
         pass
@@ -251,20 +267,17 @@ class PlayerCommands(BaseCommands):
         success_level = utils.success_level(dice, move_level)
         if success_level == utils.SuccessLevel.CRITICAL_FAILURE:
             self.state.players.add_state(player_id, 'ap', -5)
-            result = '你原地摔了一跤并失去5点体力，剩余{0}点体力'.format(ap-5)
+            result = '你原地摔了一跤并失去5点体力，剩余{0}点体力'.format(ap - 5)
         else:
             avail_dis = \
                 30 if success_level == utils.SuccessLevel.FAILURE else \
-                60 if success_level == utils.SuccessLevel.REGULAR_SUCCESS else \
-                80 if success_level == utils.SuccessLevel.HARD_SUCCESS else \
-                120 if success_level == utils.SuccessLevel.EXTREME_SUCCESS else \
-                999 if success_level == utils.SuccessLevel.CRITICAL_SUCCESS else \
-                0
+                    60 if success_level == utils.SuccessLevel.REGULAR_SUCCESS else \
+                        80 if success_level == utils.SuccessLevel.HARD_SUCCESS else \
+                            120 if success_level == utils.SuccessLevel.EXTREME_SUCCESS else \
+                                999 if success_level == utils.SuccessLevel.CRITICAL_SUCCESS else \
+                                    0
             result = '可移动{0}距离'.format(avail_dis)
 
         reply = '初始体力{0} 移动值{1} 掷骰1d100={2}, 成功等级{3}:{4}\n{5}'.format(
             ap, move_level, dice, success_level.value, success_level.display_name(), result)
         await msg.reply(reply)
-
-
-

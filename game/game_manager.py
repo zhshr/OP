@@ -125,11 +125,9 @@ class GameManager(ManagerWithState):
     async def time_lapse(self, turns: int):
         prev = self.turn
         after = self.turn + turns
-
         auto_recover_times = (after-1) // 12 - (prev-1) // 12
+        logging.info('time lapse {0} -> {1}, triggered {2} AP recovery'.format(prev, after, auto_recover_times))
         if auto_recover_times > 0:
-            logging.info('time lapse {0} -> {1}, triggered {2} AP recovery'.format(prev, after, auto_recover_times))
-            self.turn = after
             channels = await self.state.channels.fetch_channel_map(self.state.guild)
             futures = []
             for player_state in self.state.players.player_state:
@@ -146,7 +144,8 @@ class GameManager(ManagerWithState):
                 )
                 futures.append(
                     channels[self.state.channels.get_player_private_channel_id(player_state.player_index)].send(cm))
-            self.state.players.save_config()
-            self.save_config()
             await asyncio.gather(*futures)
+        self.turn = after
+        self.state.players.save_config()
+        self.save_config()
         return self.turn

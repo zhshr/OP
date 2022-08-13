@@ -11,6 +11,7 @@ class RoleTypes(IntEnum):
     PLAYER = 2,
     DEV = 3,
     ADMIN = 4,
+    OB = 5,
 
 
 class RoleManager(ConfigClass):
@@ -48,9 +49,12 @@ class RoleManager(ConfigClass):
             if '@全体用户' == role.name.lower():
                 return role
 
+    def get_ob_role(self) -> list[str]:
+        return self.config['role_ids']['OB']
+
     def get_player_role(self, name: str):
         for role in self.roles.values():
-            if name == role.name:
+            if name.lower() == role.name.lower():
                 return role
 
     def get_role(self, role_id: int):
@@ -68,6 +72,8 @@ class RoleManager(ConfigClass):
             return RoleTypes.DEV
         elif role_id in self.config['role_ids']['Admin']:
             return RoleTypes.ADMIN
+        elif role_id in self.config['role_ids']['OB']:
+            return RoleTypes.OB
         else:
             return RoleTypes.OTHER
 
@@ -77,4 +83,3 @@ class RoleManager(ConfigClass):
             return pl_list.index(role_id)
         except ValueError:
             return -1
-

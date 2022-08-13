@@ -7,7 +7,7 @@ from game import channel_manager
 from game.game_manager import GameManager
 from game.global_state import GlobalState
 from game.utils import ChannelUtils
-from khl import Message, Bot, ChannelTypes, MessageTypes
+from khl import Message, Bot, ChannelTypes, MessageTypes, PublicMessage, PublicChannel, PublicTextChannel
 from khl.command import Command
 
 
@@ -38,11 +38,16 @@ class RoomCommands(BaseCommands):
 
     @Authenticated(allowed_user=[AllowedUsers.KP])
     async def close_private_room(self, msg: Message):
-        channel = msg.ctx.channel
+        if not isinstance(msg, PublicMessage):
+            return
+        channel: PublicTextChannel = msg.channel
         metadata = self.state.channels.metadata.get(channel.id)
         new_name = "{0}T - {1}T: {2}".format(metadata['start'], self.game_manager.turn,
                                              ' '.join(metadata['players']))
         await self.bot.update_channel(channel.id, new_name)
+        for player in metadata['players']:
+            role = self.state.roles.get_player_role(player)
+            await channel.delete_role_permission(role)
         metadata['name'] = new_name
         metadata['type'] = channel_manager.ChannelTypes.ARCHIVED
         self.state.channels.save_config()

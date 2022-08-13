@@ -12,6 +12,9 @@ class ItemType(IntEnum):
     EQUIPMENT3 = 2,
     EQUIPMENT4 = 3
     ARTIFACT = 4,
+    MAT_GATHER = 5,
+    MAT_DROP = 6,
+    MAT_BOSS_DROP = 7,
     OTHER = 999
 
     @property
@@ -25,6 +28,13 @@ class ItemType(IntEnum):
                 return "四星装备"
             case ItemType.ARTIFACT:
                 return "圣遗物"
+            case ItemType.MAT_GATHER:
+                return "采集素材"
+            case ItemType.MAT_DROP:
+                return "怪物素材"
+            case ItemType.MAT_BOSS_DROP:
+                return "首领素材"
+
 
 @dataclass_json
 @dataclass
@@ -52,8 +62,8 @@ class ItemLibrary(ConfigClass):
         super().__init__(config_name="items")
 
     def add_item(self, item: Item) -> int:
-        new_id = int(max(self.item_map.keys(), default=-1)) + 1
-        self.item_map.update({new_id: item})
+        new_id = int(max([int(k) for k in self.item_map.keys()], default=-1)) + 1
+        self.item_map.update({str(new_id): item})
         self.save_config()
         return new_id
 
@@ -76,7 +86,7 @@ class ItemLibrary(ConfigClass):
         else:
             return -1, None
 
-    def get_all_by_type(self, item_type: ItemType):
+    def get_all_by_type(self, item_type: ItemType) -> dict[int, Item]:
         return {k: v for k, v in self.item_map.items() if v.type == item_type}
 
 

@@ -3,6 +3,8 @@ import logging
 import math
 import random
 
+import ipdb
+
 import utils
 from commands.authenticator import AllowedUsers, Authenticated
 from commands.base_commands import BaseCommands
@@ -29,11 +31,17 @@ class GameCommands(BaseCommands):
         self.bot.command.add(Command.command(name='additemtoconfig')(self.add_item_to_config))
         self.bot.command.add(Command.command(name='additem')(self.add_item_to_player))
         self.bot.command.add(Command.command(name='listallitems')(self.list_all_items))
+        self.bot.command.add(Command.command(name='seq')(self.seq))
 
     @Authenticated(allowed_user=[AllowedUsers.KP, AllowedUsers.PLAYER])
     async def roll(self, msg: Message, *params: str):
         if len(params) == 1 and params[0].isalpha():
-            await self.attr_roll(msg, params[0])
+            player_id = self.state.channels.which_player_single_channel_is_this(msg.ctx.channel.id)
+            attr_value = self.state.players.get_attr(player_id, params[0])
+            await self.attr_roll(msg, params[0], attr_value)
+            return
+        if len(params) == 1 and params[0].isdigit():
+            await self.attr_roll(msg, '技能等级', int(params[0]))
             return
         segments = []
         total = 0
@@ -46,14 +54,12 @@ class GameCommands(BaseCommands):
         reply = "{0} = {1}".format(" + ".join(segments), total)
         await msg.reply(reply)
 
-    async def attr_roll(self, msg: Message, attr: str):
-        player_id = self.state.channels.which_player_single_channel_is_this(msg.ctx.channel.id)
-        attr_value = self.state.players.get_attr(player_id, attr)
+    async def attr_roll(self, msg: Message, attr_name: str, attr_value: int):
         dice = sum(utils.roll('1d100'))
         success_level = utils.success_level(dice, attr_value)
 
         await msg.reply('{0}={1} 掷骰1d100={2}, 成功等级{3}:{4}'.format(
-            attr, attr_value, dice, success_level.value, success_level.display_name()))
+            attr_name, attr_value, dice, success_level.value, success_level.display_name()))
 
     @Authenticated(allowed_user=[AllowedUsers.PLAYER, AllowedUsers.KP])
     async def show_turn(self, msg: Message):
@@ -99,17 +105,21 @@ class GameCommands(BaseCommands):
 
     @Authenticated(allowed_user=[AllowedUsers.KP], allowed_channel=[ChannelTypes.BOT_CONTROL])
     async def add_item_to_config(self, msg: Message, item_name: str, item_desc: str, item_type: str = "item"):
-        items = item_library.instance()
+        library = item_library.instance()
         item_type = item_library.ItemType[item_type.upper()]
-        new_item = items.add_item(item_library.Item(name=item_name, desc=item_desc, type=item_type))
+
+        new_item = library.add_item(item_library.Item(name=item_name, desc=item_desc, type=item_type))
         await msg.reply("物品{0}添加完成(ID={1})".format(item_name, new_item))
 
     @Authenticated(allowed_user=[AllowedUsers.KP], allowed_channel=[ChannelTypes.PLAYER_SINGLE])
-    async def add_item_to_player(self, msg: Message, item: str, count: int):
+    async def add_item_to_player(self, msg: Message, item_name_or_id: str, count: int):
         player_index = self.state.channels.which_player_single_channel_is_this(msg.ctx.channel.id)
         if player_index == -1:
             return
-        item_id, item = item_library.instance().get_item(item)
+        item_id, item = item_library.instance().get_item(item_name_or_id)
+        if item_id == -1:
+            await msg.reply("物品{0}不存在，请先添加".format(item_name_or_id))
+            return
         new_count = self.state.players.add_item_to_player(player_index, item_id, count)
         await msg.reply("成功为玩家{0}增加物品{1}*{2},现有{3}个".format(
             self.state.players.player_state[player_index].name,
@@ -125,3 +135,28 @@ class GameCommands(BaseCommands):
             items.append(
                 'ID={0}: 类别：{2} 名称：{1} 描述：{3}'.format(item_id, item.name, item.type.display_name, item.desc))
         await msg.reply('\n'.join(items))
+
+    @Authenticated(allowed_user=[AllowedUsers.KP],
+                   allowed_channel=[ChannelTypes.BOT_CONTROL, ChannelTypes.PLAYER_SHARED])
+    async def seq(self, msg: Message, *params: str):
+        lines = []
+        d: dict[int, list[str]] = {}
+        d1: dict[int, str] = {}
+        for param in params:
+            index = self.state.players.get_index(param)
+            data = [self.state.players.get_attr(index, 'atk'),
+                    self.state.players.get_attr(index, 'def'),
+                    self.state.players.get_attr(index, 'ele'),
+                    self.state.players.get_attr(index, 'ap')]
+            lines.append("{0}({1}) ATK: {2} DEF: {3} ELE: {4} AP: {5} SUM {6}".format(param, index, *data, sum(data)))
+            d.setdefault(sum(data), []).append(param)
+            d1.update({sum(data): param})
+        channel_type = self.state.channels.get_channel_type(msg.ctx.channel.id)
+        if channel_type != ChannelTypes.BOT_CONTROL:
+            lines.clear()
+        lines.append(" > ".join([item[1] for item in sorted(d1.items(), reverse=True)]))
+        try:
+            lines.append(" > ".join([name for item in sorted(d.items(), reverse=True) for name in item[1]]))
+        finally:
+            pass
+        await msg.reply('\n'.join(lines))
